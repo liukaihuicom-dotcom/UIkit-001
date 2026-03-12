@@ -9,6 +9,18 @@ import {
 
 import type { Route } from "./+types/root"
 import "@workspace/ui/globals.css"
+import { FxStoreProvider } from "./state/fx-store"
+import { NavLink } from "react-router"
+import * as React from "react"
+
+const nav = [
+  { to: "/markets", label: "行情" },
+  { to: "/trade", label: "交易" },
+  { to: "/positions", label: "持仓" },
+  { to: "/orders", label: "订单" },
+  { to: "/wallet", label: "资金" },
+  { to: "/settings", label: "设置" },
+] as const
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -20,7 +32,44 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        {children}
+        <FxStoreProvider>
+          <div className="min-h-svh bg-background text-foreground">
+            <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
+              <div className="mx-auto flex h-12 max-w-5xl items-center justify-between px-4">
+                <div className="text-sm font-semibold tracking-wide">
+                  FX Trader
+                </div>
+                <ThemeToggle />
+              </div>
+            </header>
+
+            <main className="mx-auto max-w-5xl px-4 pb-20 pt-4">
+              {children}
+            </main>
+
+            <nav className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/90 backdrop-blur">
+              <div className="mx-auto grid max-w-5xl grid-cols-6 px-2">
+                {nav.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      [
+                        "flex h-14 flex-col items-center justify-center gap-1 text-xs",
+                        isActive
+                          ? "text-foreground"
+                          : "text-muted-foreground hover:text-foreground",
+                      ].join(" ")
+                    }
+                  >
+                    <span className="h-1 w-8 rounded-full bg-transparent" />
+                    <span>{item.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            </nav>
+          </div>
+        </FxStoreProvider>
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -30,6 +79,33 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return <Outlet />
+}
+
+function ThemeToggle() {
+  const [isDark, setIsDark] = React.useState(false)
+
+  React.useEffect(() => {
+    const saved = window.localStorage.getItem("theme")
+    const dark = saved ? saved === "dark" : window.matchMedia?.("(prefers-color-scheme: dark)")?.matches
+    setIsDark(!!dark)
+  }, [])
+
+  React.useEffect(() => {
+    const root = document.documentElement
+    if (isDark) root.classList.add("dark")
+    else root.classList.remove("dark")
+    window.localStorage.setItem("theme", isDark ? "dark" : "light")
+  }, [isDark])
+
+  return (
+    <button
+      type="button"
+      onClick={() => setIsDark((v) => !v)}
+      className="rounded-md border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+    >
+      {isDark ? "深色" : "浅色"}
+    </button>
+  )
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
